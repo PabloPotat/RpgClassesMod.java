@@ -1,0 +1,16 @@
+{
+  "item.rpgclasses.loaded_dice": "Loaded Dice",
+  "item.rpgclasses.weighted_dice": "Weighted Dice",
+
+
+
+  "key.categories.rpgclasses": "RPG Classes",
+
+  "effect.rpgclasses.stun": "Stunned",
+  "effect.rpgclasses.stun.description": "Cannot move, attack, or use items",
+
+
+  "key.rpgclasses.skybreaker_strike": "Skybreaker Strike",
+
+  "creativetab.rpg_classes_tab": "RPG Classes Tab"
+}
