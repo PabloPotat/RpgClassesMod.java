@@ -50,18 +50,22 @@ public class ClassSkillClientHandler {
                 case "warrior": {
                     NetworkHandler.INSTANCE.sendToServer(new ClassSkillPressedPacket());
                 }
-                    break;
+                break;
 
 
                 case "mage": {
                     NetworkHandler.INSTANCE.sendToServer(new ClassSkillPressedPacket());
                 }
-                    break;
+                break;
                 case "rogue": {
                     NetworkHandler.INSTANCE.sendToServer(new ClassSkillPressedPacket());
                 }
                 break;
+                case "ranger": {
+                    NetworkHandler.INSTANCE.sendToServer(new ClassSkillPressedPacket());
                 }
+                break;
+            }
             }
         }
 

@@ -16,4 +16,8 @@ public class ModEffects {
     // Register the Phantom effect
     public static final RegistryObject<MobEffect> PHANTOM =
             EFFECTS.register("phantom", PhantomEffect::new);
+
+    public static final RegistryObject<MobEffect> CHAINED =
+            EFFECTS.register("chained", ChainedEffect::new);
+
 }

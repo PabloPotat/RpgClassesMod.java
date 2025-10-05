@@ -43,7 +43,6 @@ public class RpgClassesMod {
 
         // Register SkybreakerStrike events
         MinecraftForge.EVENT_BUS.addListener(SeismicSmashManager::onServerTick);
-
         // Register network channel
         NetworkHandler.register();
 

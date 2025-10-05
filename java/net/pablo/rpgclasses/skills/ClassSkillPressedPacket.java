@@ -54,6 +54,11 @@ public class ClassSkillPressedPacket {
                         PhantomStrikeManager.activate(player, player.tickCount);
                     }
                     break;
+                case "Ranger":
+                {
+                    SpectralChainsManager.activate(player);
+                }
+                break;
             }
         });
         ctx.setPacketHandled(true);
