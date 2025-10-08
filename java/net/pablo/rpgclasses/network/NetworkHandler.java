@@ -24,6 +24,7 @@ public class NetworkHandler {
                 PROTOCOL_VERSION::equals
         );
 
+        // Existing packets
         INSTANCE.registerMessage(packetId++, SyncComboPacket.class,
                 SyncComboPacket::encode,
                 SyncComboPacket::new,
@@ -37,15 +38,41 @@ public class NetworkHandler {
         );
 
         INSTANCE.registerMessage(packetId++, SyncSelectedClassPacket.class,
-               SyncSelectedClassPacket::encode,
-               SyncSelectedClassPacket::decode,
-               SyncSelectedClassPacket::handle
+                SyncSelectedClassPacket::encode,
+                SyncSelectedClassPacket::decode,
+                SyncSelectedClassPacket::handle
+        );
+
+        // NEW: Progression system packets
+        INSTANCE.registerMessage(packetId++, PurchaseNodePacket.class,
+                PurchaseNodePacket::toBytes,
+                PurchaseNodePacket::new,
+                PurchaseNodePacket::handle
+        );
+
+        INSTANCE.registerMessage(packetId++, SpendCustomStatPacket.class,
+                SpendCustomStatPacket::toBytes,
+                SpendCustomStatPacket::new,
+                SpendCustomStatPacket::handle
+        );
+
+        INSTANCE.registerMessage(packetId++, SyncProgressionPacket.class,
+                SyncProgressionPacket::toBytes,
+                SyncProgressionPacket::new,
+                SyncProgressionPacket::handle
         );
     }
 
     public static <MSG> void sendToClient(MSG message, ServerPlayer player) {
         if (INSTANCE != null) {
             INSTANCE.sendTo(message, player.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
+        }
+    }
+
+    // NEW: Send to server method (for client-side use)
+    public static <MSG> void sendToServer(MSG message) {
+        if (INSTANCE != null) {
+            INSTANCE.sendToServer(message);
         }
     }
 }

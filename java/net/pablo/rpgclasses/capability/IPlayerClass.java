@@ -30,5 +30,8 @@ public interface IPlayerClass {
 
     boolean canPickSecondaryClass();
 
+    // NEW: Progression system
+    PlayerProgressionData getProgressionData();
+
     void copyFrom(IPlayerClass other);
 }

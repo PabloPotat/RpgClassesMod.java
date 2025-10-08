@@ -1,8 +1,6 @@
 package net.pablo.rpgclasses.capability;
 
 import net.pablo.rpgclasses.classes.RPGClass;
-import net.pablo.rpgclasses.network.NetworkHandler;
-import net.pablo.rpgclasses.network.SyncSelectedClassPacket;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +15,9 @@ public class PlayerClass implements IPlayerClass {
     private final Map<String, Integer> classXP = new HashMap<>();
     private final Map<String, Integer> classLevel = new HashMap<>();
 
+    // NEW: Progression data
+    private final PlayerProgressionData progressionData = new PlayerProgressionData();
+
     @Override
     public RPGClass getSelectedClass() { return selectedClass; }
 
@@ -25,7 +26,6 @@ public class PlayerClass implements IPlayerClass {
         if (selectedClass != null) previousClassName = selectedClass.getClassName();
         selectedClass = clazz;
         initializeClassData(clazz);
-
     }
 
     @Override
@@ -34,7 +34,6 @@ public class PlayerClass implements IPlayerClass {
     @Override
     public void setSecondaryClass(RPGClass clazz) {
         if (clazz == null) return;
-        // Prevent selecting same class as primary
         if (selectedClass != null && selectedClass.getClassName().equalsIgnoreCase(clazz.getClassName())) return;
         secondaryClass = clazz;
         initializeClassData(clazz);
@@ -72,7 +71,6 @@ public class PlayerClass implements IPlayerClass {
         int totalXP = getXP(className) + xp;
         int lvl = oldLevel;
 
-        // Use new 1.08 exponential requirement
         while (totalXP >= xpToLevel(lvl)) {
             totalXP -= xpToLevel(lvl);
             lvl++;
@@ -84,7 +82,7 @@ public class PlayerClass implements IPlayerClass {
 
     @Override
     public int xpToLevel(int level) {
-        return (int) (100 * Math.pow(1.08, level - 1)); // exponential
+        return (int) (100 * Math.pow(1.08, level - 1));
     }
 
     @Override
@@ -95,6 +93,12 @@ public class PlayerClass implements IPlayerClass {
     @Override
     public boolean canPickSecondaryClass() {
         return classLevel.values().stream().anyMatch(lvl -> lvl >= 50);
+    }
+
+    // NEW: Progression data getter
+    @Override
+    public PlayerProgressionData getProgressionData() {
+        return progressionData;
     }
 
     @Override
@@ -108,5 +112,7 @@ public class PlayerClass implements IPlayerClass {
         this.classXP.putAll(other.getClassXPMap());
         this.classLevel.clear();
         this.classLevel.putAll(other.getClassLevelMap());
+        // NEW: Copy progression data
+        this.progressionData.copyFrom(other.getProgressionData());
     }
 }

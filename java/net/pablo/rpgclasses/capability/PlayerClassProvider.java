@@ -46,6 +46,9 @@ public class PlayerClassProvider implements ICapabilitySerializable<CompoundTag>
         for (var entry : instance.getClassLevelMap().entrySet()) levelTag.putInt(entry.getKey(), entry.getValue());
         tag.put("ClassLevel", levelTag);
 
+        // NEW: Save progression data
+        tag.put("ProgressionData", instance.getProgressionData().save());
+
         return tag;
     }
 
@@ -67,6 +70,11 @@ public class PlayerClassProvider implements ICapabilitySerializable<CompoundTag>
         if (nbt.contains("ClassLevel")) {
             CompoundTag levelTag = nbt.getCompound("ClassLevel");
             for (String key : levelTag.getAllKeys()) instance.setLevel(key, levelTag.getInt(key));
+        }
+
+        // NEW: Load progression data
+        if (nbt.contains("ProgressionData")) {
+            instance.getProgressionData().load(nbt.getCompound("ProgressionData"));
         }
     }
 }
