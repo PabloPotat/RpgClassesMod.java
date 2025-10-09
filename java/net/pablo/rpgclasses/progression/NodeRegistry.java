@@ -22,7 +22,7 @@ public class NodeRegistry {
     private static void initializeWarriorNodes() {
         List<ProgressionNode> nodes = new ArrayList<>();
 
-        // SKILL LINE (Total: 33 levels)
+        // SKILL LINE (Total: 33 levels) - SEQUENTIAL ORDER
         nodes.add(new ProgressionNode("warrior_skill_1", "skill", 5, "STAT", "+2 HP", "Vitality I", "Increases max health by 2"));
         nodes.add(new ProgressionNode("warrior_skill_2", "skill", 5, "STAT", "+1 ATK", "Power I", "Increases attack damage by 1", "warrior_skill_1"));
         nodes.add(new ProgressionNode("warrior_skill_3", "skill", 5, "CUSTOM_POINT", "skill", "Custom Stat Point", "Unlock custom stat point", "warrior_skill_2"));
@@ -31,7 +31,7 @@ public class NodeRegistry {
         nodes.add(new ProgressionNode("warrior_skill_6", "skill", 5, "CUSTOM_POINT", "skill", "Custom Stat Point", "Unlock custom stat point", "warrior_skill_5"));
         nodes.add(new ProgressionNode("warrior_skill_7", "skill", 3, "UNLOCK", "SKILL", "Vermillion Laceration", "Unlock Warrior skill!", "warrior_skill_6"));
 
-        // PASSIVE LINE (Total: 33 levels)
+        // PASSIVE LINE (Total: 33 levels) - SEQUENTIAL ORDER
         nodes.add(new ProgressionNode("warrior_passive_1", "passive", 5, "STAT", "+2% DMG", "Might I", "Increases damage by 2%"));
         nodes.add(new ProgressionNode("warrior_passive_2", "passive", 5, "STAT", "+3 HP", "Vitality I", "Increases max health by 3", "warrior_passive_1"));
         nodes.add(new ProgressionNode("warrior_passive_3", "passive", 5, "CUSTOM_POINT", "passive", "Custom Stat Point", "Unlock custom stat point", "warrior_passive_2"));
@@ -40,7 +40,7 @@ public class NodeRegistry {
         nodes.add(new ProgressionNode("warrior_passive_6", "passive", 5, "CUSTOM_POINT", "passive", "Custom Stat Point", "Unlock custom stat point", "warrior_passive_5"));
         nodes.add(new ProgressionNode("warrior_passive_7", "passive", 3, "UNLOCK", "PASSIVE", "Bloodlust", "Unlock Warrior passive!", "warrior_passive_6"));
 
-        // ITEM LINE (Total: 34 levels)
+        // ITEM LINE (Total: 34 levels) - SEQUENTIAL ORDER
         nodes.add(new ProgressionNode("warrior_item_1", "item", 5, "STAT", "+1 ATK", "Sharpness I", "Increases attack damage by 1"));
         nodes.add(new ProgressionNode("warrior_item_2", "item", 5, "STAT", "+5 HP", "Fortitude I", "Increases max health by 5", "warrior_item_1"));
         nodes.add(new ProgressionNode("warrior_item_3", "item", 5, "CUSTOM_POINT", "item", "Custom Stat Point", "Unlock custom stat point", "warrior_item_2"));
@@ -55,7 +55,7 @@ public class NodeRegistry {
     private static void initializeFighterNodes() {
         List<ProgressionNode> nodes = new ArrayList<>();
 
-        // SKILL LINE
+        // SKILL LINE - SEQUENTIAL ORDER
         nodes.add(new ProgressionNode("fighter_skill_1", "skill", 5, "STAT", "+2% AOE DMG", "Area Impact", "AOE damage +2%"));
         nodes.add(new ProgressionNode("fighter_skill_2", "skill", 5, "STAT", "+1 ATK", "Power Strike", "Attack damage +1", "fighter_skill_1"));
         nodes.add(new ProgressionNode("fighter_skill_3", "skill", 5, "CUSTOM_POINT", "skill", "Custom Stat Point", "Unlock custom stat", "fighter_skill_2"));
@@ -64,7 +64,7 @@ public class NodeRegistry {
         nodes.add(new ProgressionNode("fighter_skill_6", "skill", 5, "CUSTOM_POINT", "skill", "Custom Stat Point", "Unlock custom stat", "fighter_skill_5"));
         nodes.add(new ProgressionNode("fighter_skill_7", "skill", 3, "UNLOCK", "SKILL", "Seismic Smash", "Unlock Fighter skill!", "fighter_skill_6"));
 
-        // PASSIVE LINE
+        // PASSIVE LINE - SEQUENTIAL ORDER
         nodes.add(new ProgressionNode("fighter_passive_1", "passive", 5, "STAT", "+2% Combo DMG", "Combo Master", "Combo damage +2%"));
         nodes.add(new ProgressionNode("fighter_passive_2", "passive", 5, "STAT", "+1% ATK Speed", "Swift Strikes", "Attack speed +1%", "fighter_passive_1"));
         nodes.add(new ProgressionNode("fighter_passive_3", "passive", 5, "CUSTOM_POINT", "passive", "Custom Stat Point", "Unlock custom stat", "fighter_passive_2"));
@@ -73,7 +73,7 @@ public class NodeRegistry {
         nodes.add(new ProgressionNode("fighter_passive_6", "passive", 5, "CUSTOM_POINT", "passive", "Custom Stat Point", "Unlock custom stat", "fighter_passive_5"));
         nodes.add(new ProgressionNode("fighter_passive_7", "passive", 3, "UNLOCK", "PASSIVE", "Combo Mastery", "Unlock Fighter passive!", "fighter_passive_6"));
 
-        // ITEM LINE
+        // ITEM LINE - SEQUENTIAL ORDER
         nodes.add(new ProgressionNode("fighter_item_1", "item", 5, "STAT", "+1 ATK", "Weapon Enhancement", "Attack damage +1"));
         nodes.add(new ProgressionNode("fighter_item_2", "item", 5, "STAT", "+2% Fury", "Fury Build", "Fury generation +2%", "fighter_item_1"));
         nodes.add(new ProgressionNode("fighter_item_3", "item", 5, "CUSTOM_POINT", "item", "Custom Stat Point", "Unlock custom stat", "fighter_item_2"));
@@ -103,19 +103,68 @@ public class NodeRegistry {
                 .orElse(null);
     }
 
+    /**
+     * Check if a player can purchase a node.
+     * ENFORCES SEQUENTIAL ORDERING within each line.
+     */
     public static boolean canPurchaseNode(PlayerProgressionData progression, ProgressionNode node) {
+        // Can't buy if already owned
         if (progression.hasNode(node.getLine(), node.getId())) {
             return false;
         }
 
+        // SEQUENTIAL ORDER ENFORCEMENT
+        // If node has prerequisites, ALL must be purchased
         if (node.hasPrerequisites()) {
             for (String prereq : node.getPrerequisites()) {
                 if (!progression.hasNode(node.getLine(), prereq)) {
-                    return false;
+                    return false; // Missing prerequisite
                 }
             }
         }
 
         return true;
+    }
+
+    /**
+     * Get the next purchasable node in a line (for UI hints)
+     */
+    public static ProgressionNode getNextAvailableNode(String className, String line, PlayerProgressionData progression) {
+        List<ProgressionNode> lineNodes = getNodesForLine(className, line);
+
+        for (ProgressionNode node : lineNodes) {
+            if (!progression.hasNode(line, node.getId()) && canPurchaseNode(progression, node)) {
+                return node;
+            }
+        }
+
+        return null; // All nodes purchased or none available
+    }
+
+    /**
+     * Get detailed purchase status for debugging
+     */
+    public static String getPurchaseStatus(PlayerProgressionData progression, ProgressionNode node, int availablePoints) {
+        if (progression.hasNode(node.getLine(), node.getId())) {
+            return "§a✓ OWNED";
+        }
+
+        if (!canPurchaseNode(progression, node)) {
+            // Find which prerequisite is missing
+            if (node.hasPrerequisites()) {
+                for (String prereq : node.getPrerequisites()) {
+                    if (!progression.hasNode(node.getLine(), prereq)) {
+                        return "§c✗ LOCKED (Need: " + prereq + ")";
+                    }
+                }
+            }
+            return "§c✗ LOCKED";
+        }
+
+        if (availablePoints < node.getCost()) {
+            return "§e⚠ AVAILABLE (Need " + node.getCost() + " pts, have " + availablePoints + ")";
+        }
+
+        return "§a○ CAN PURCHASE";
     }
 }

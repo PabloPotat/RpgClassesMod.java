@@ -37,16 +37,20 @@ public class PlayerProgressionData {
         return purchasedNodes.get(line).contains(nodeId);
     }
 
+    /**
+     * Purchase a node. This just marks it as owned.
+     * Points should be deducted separately before calling this!
+     */
     public void purchaseNode(String line, String nodeId, int cost, String className) {
         if (!hasNode(line, nodeId)) {
             purchasedNodes.get(line).add(nodeId);
-            // Deduct from class-specific points
-            int current = classSkillPoints.getOrDefault(className, 0);
-            classSkillPoints.put(className, current - cost);
+            // DO NOT deduct points here - it's done externally
         }
     }
 
-    // ADDED: Overload for commands that don't specify class
+    /**
+     * Overload for commands/testing that don't deduct points
+     */
     public void purchaseNode(String line, String nodeId, int cost) {
         if (!hasNode(line, nodeId)) {
             purchasedNodes.get(line).add(nodeId);
@@ -61,7 +65,6 @@ public class PlayerProgressionData {
         return purchasedNodes.get(line).size();
     }
 
-    // ADDED: Get total spent levels across all lines
     public int getTotalSpentLevels() {
         int total = 0;
         for (Set<String> nodes : purchasedNodes.values()) {
@@ -70,7 +73,6 @@ public class PlayerProgressionData {
         return total;
     }
 
-    // ADDED: Get available levels based on class level
     public int getAvailableLevels(int classLevel) {
         return Math.max(0, classLevel - getTotalSpentLevels());
     }
@@ -82,11 +84,14 @@ public class PlayerProgressionData {
 
     public void setSkillPoints(String className, int amount) {
         classSkillPoints.put(className, amount);
+        System.out.println("[RPGClasses] SET skill points for " + className + ": " + amount);
     }
 
     public void addSkillPoints(String className, int amount) {
         int current = classSkillPoints.getOrDefault(className, 0);
-        classSkillPoints.put(className, current + amount);
+        int newAmount = current + amount;
+        classSkillPoints.put(className, newAmount);
+        System.out.println("[RPGClasses] ADD skill points for " + className + ": " + current + " + " + amount + " = " + newAmount);
     }
 
     public Map<String, Integer> getAllClassSkillPoints() {
@@ -108,10 +113,11 @@ public class PlayerProgressionData {
     }
 
     public int getAvailableCustomPoints(String line) {
-        // Count CUSTOM_POINT nodes purchased
+        // Count CUSTOM_POINT nodes purchased (nodes 3 and 6)
         int totalPoints = 0;
         for (String nodeId : purchasedNodes.get(line)) {
-            if (nodeId.contains("_3") || nodeId.contains("_6")) { // Nodes 3 and 6 give custom points
+            // Check if this is a custom point node
+            if (nodeId.contains("_3") || nodeId.contains("_6")) {
                 totalPoints++;
             }
         }
