@@ -36,18 +36,18 @@ public class SpectralChainsManager {
 
     // Config
     private static final int PROJECTILE_COUNT = 3;
-    private static final long EFFECT_DURATION_SOLO = 7_000; // 7s for anchor alone
-    private static final long EFFECT_DURATION_TWO = 5_000; // 5s when 2nd enemy hit
-    private static final long EFFECT_DURATION_THREE = 3_000; // 3s when 3rd enemy hit
+    private static final long EFFECT_DURATION_SOLO = 10_000; // 7s for anchor alone
+    private static final long EFFECT_DURATION_TWO = 8_000; // 5s when 2nd enemy hit
+    private static final long EFFECT_DURATION_THREE = 6_000; // 3s when 3rd enemy hit
 
-    private static final float ANCHOR_SPEED_MULTIPLIER = 0.7f; // 30% slow
-    private static final float BONUS_DAMAGE_MULTIPLIER = 0.15f; // +15% damage
-    private static final float TETHER_DAMAGE_SHARE = 0.10f; // 10% shared
-    private static final double TETHER_RANGE = 6.0; // blocks
+    private static final float ANCHOR_SPEED_MULTIPLIER = 0.6f; // 30% slow
+    private static final float BONUS_DAMAGE_MULTIPLIER = 0.20f; // +15% damage
+    private static final float TETHER_DAMAGE_SHARE = 0.15f; // 10% shared
+    private static final double TETHER_RANGE = 7.0; // blocks
     private static final double TETHER_PULL_STRENGTH = 0.15; // pull force multiplier
 
-    private static final float EXPIRE_BURST_DAMAGE = 4.0f; // AOE damage on expire
-    private static final double EXPIRE_BURST_RADIUS = 4.0; // blocks
+    private static final float EXPIRE_BURST_DAMAGE = 6.0f; // AOE damage on expire
+    private static final double EXPIRE_BURST_RADIUS = 5.0; // blocks
 
     // State
     private static final Map<UUID, AbilityState> activeAbilities = new HashMap<>();
@@ -193,6 +193,7 @@ public class SpectralChainsManager {
 
     // ====== Activation ======
     public static void activate(Player player) {
+        if (SpectralChainsCooldownManager.isOnCooldown(player)) return;
         UUID playerId = player.getUUID();
 
         activeAbilities.put(playerId, new AbilityState(playerId));
@@ -252,6 +253,7 @@ public class SpectralChainsManager {
         // End ability window if all projectiles used
         if (state.projectilesRemaining == 0) {
             activeAbilities.remove(shooterId);
+            SpectralChainsCooldownManager.setCooldown(shooter);
         }
     }
 

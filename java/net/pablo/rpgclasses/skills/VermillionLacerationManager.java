@@ -22,11 +22,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Mod.EventBusSubscriber(modid = RpgClassesMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class VermillionLacerationManager {
 
-    private static final double AURA_RADIUS = 5.0;
-    private static final int DURATION_TICKS = 120;
-    private static final double HP_PERCENTAGE_ON_CAST = 0.3;
-    private static final double AURA_DAMAGE = 2.0;
-    private static final double LIFESTEAL_PERCENT = 0.25;
+    private static final double AURA_RADIUS = 5.5;
+    private static final int DURATION_TICKS = 140;
+    private static final double HP_PERCENTAGE_ON_CAST = 0.35;
+    private static final double AURA_DAMAGE = 2.5;
+    private static final double LIFESTEAL_PERCENT = 0.20;
     private static final int DAMAGE_INTERVAL = 10;
     private static final int SLASH_INTERVAL = 6;
     private static final int SLASH_COUNT = 5; // Increased for better coverage
@@ -58,8 +58,6 @@ public class VermillionLacerationManager {
             createAnimeSlashBurst(castPosition, player.level());
         }
 
-        // ✅ Apply cooldown after successful cast
-        VermillionCooldown.setCooldown(player);
     }
 
     private static void createAnimeSlashBurst(Vec3 center, Level level) {
@@ -158,6 +156,10 @@ public class VermillionLacerationManager {
         auraData.ticksLeft--;
         if (auraData.ticksLeft <= 0) {
             activePlayers.remove(uuid);
+        }
+
+        if (!player.level().isClientSide()) {
+            VermillionCooldown.setCooldown(player);
         }
     }
 

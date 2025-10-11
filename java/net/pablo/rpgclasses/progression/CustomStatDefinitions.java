@@ -1,168 +1,228 @@
 package net.pablo.rpgclasses.progression;
 
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+
 import java.util.*;
 
 /**
- * Defines all custom stats available for each class line (Elden Ring style)
- * Using ONLY vanilla Minecraft attributes
+ * Defines all available custom stats that players can spend custom points on.
+ * These are basic Minecraft stat increases like HP, Speed, Defense, etc.
  */
 public class CustomStatDefinitions {
 
-    public static class CustomStat {
-        private final String id;
-        private final String displayName;
-        private final String description;
-        private final int maxLevel;
-        private final String effectPerLevel;
-        private final MinecraftAttribute attribute;
-        private final double valuePerLevel;
-        private final boolean isPercentage;
-
-        public CustomStat(String id, String displayName, String description, int maxLevel,
-                          String effectPerLevel, MinecraftAttribute attribute, double valuePerLevel, boolean isPercentage) {
-            this.id = id;
-            this.displayName = displayName;
-            this.description = description;
-            this.maxLevel = maxLevel;
-            this.effectPerLevel = effectPerLevel;
-            this.attribute = attribute;
-            this.valuePerLevel = valuePerLevel;
-            this.isPercentage = isPercentage;
-        }
-
-        public String getId() { return id; }
-        public String getDisplayName() { return displayName; }
-        public String getDescription() { return description; }
-        public int getMaxLevel() { return maxLevel; }
-        public String getEffectPerLevel() { return effectPerLevel; }
-        public MinecraftAttribute getAttribute() { return attribute; }
-        public double getValuePerLevel() { return valuePerLevel; }
-        public boolean isPercentage() { return isPercentage; }
-    }
-
-    public enum MinecraftAttribute {
-        MAX_HEALTH,           // net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH
-        ARMOR,                // net.minecraft.world.entity.ai.attributes.Attributes.ARMOR
-        ARMOR_TOUGHNESS,      // net.minecraft.world.entity.ai.attributes.Attributes.ARMOR_TOUGHNESS
-        ATTACK_DAMAGE,        // net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE
-        ATTACK_SPEED,         // net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_SPEED
-        MOVEMENT_SPEED,       // net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED
-        ATTACK_KNOCKBACK,     // net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_KNOCKBACK
-        KNOCKBACK_RESISTANCE  // net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE
-    }
-
-    // Warrior Stats - Focus on Health, Armor, and Damage
-    private static final List<CustomStat> WARRIOR_SKILL_STATS = Arrays.asList(
-            new CustomStat("vitality", "Vitality", "Increases maximum health", 20,
-                    "+2 HP per level", MinecraftAttribute.MAX_HEALTH, 2.0, false),
-            new CustomStat("strength", "Strength", "Increases attack damage", 15,
-                    "+1 Attack Damage per level", MinecraftAttribute.ATTACK_DAMAGE, 1.0, false),
-            new CustomStat("vigor", "Vigor", "Greatly increases health pool", 15,
-                    "+3 HP per level", MinecraftAttribute.MAX_HEALTH, 3.0, false),
-            new CustomStat("power", "Power", "Increases attack power", 10,
-                    "+5% Attack Damage per level", MinecraftAttribute.ATTACK_DAMAGE, 0.05, true),
-            new CustomStat("might", "Might", "Increases raw damage output", 10,
-                    "+2 Attack Damage per level", MinecraftAttribute.ATTACK_DAMAGE, 2.0, false)
-    );
-
-    private static final List<CustomStat> WARRIOR_PASSIVE_STATS = Arrays.asList(
-            new CustomStat("fortitude", "Fortitude", "Increases armor rating", 20,
-                    "+1 Armor per level", MinecraftAttribute.ARMOR, 1.0, false),
-            new CustomStat("resilience", "Resilience", "Increases armor toughness", 15,
-                    "+0.5 Armor Toughness per level", MinecraftAttribute.ARMOR_TOUGHNESS, 0.5, false),
-            new CustomStat("endurance", "Endurance", "Increases health significantly", 15,
-                    "+4 HP per level", MinecraftAttribute.MAX_HEALTH, 4.0, false),
-            new CustomStat("stability", "Stability", "Increases knockback resistance", 10,
-                    "+5% Knockback Resist per level", MinecraftAttribute.KNOCKBACK_RESISTANCE, 0.05, true),
-            new CustomStat("constitution", "Constitution", "Boosts overall survivability", 12,
-                    "+2 Armor per level", MinecraftAttribute.ARMOR, 2.0, false)
-    );
-
-    private static final List<CustomStat> WARRIOR_ITEM_STATS = Arrays.asList(
-            new CustomStat("swiftness", "Swiftness", "Increases attack speed", 15,
-                    "+5% Attack Speed per level", MinecraftAttribute.ATTACK_SPEED, 0.05, true),
-            new CustomStat("agility", "Agility", "Increases movement speed", 10,
-                    "+2% Movement Speed per level", MinecraftAttribute.MOVEMENT_SPEED, 0.02, true),
-            new CustomStat("ferocity", "Ferocity", "Increases attack damage", 12,
-                    "+1.5 Attack Damage per level", MinecraftAttribute.ATTACK_DAMAGE, 1.5, false),
-            new CustomStat("impact", "Impact", "Increases knockback power", 10,
-                    "+0.5 Knockback per level", MinecraftAttribute.ATTACK_KNOCKBACK, 0.5, false),
-            new CustomStat("haste", "Haste", "Significantly increases attack speed", 10,
-                    "+8% Attack Speed per level", MinecraftAttribute.ATTACK_SPEED, 0.08, true)
-    );
-
-    // Fighter Stats - Focus on Speed and Knockback
-    private static final List<CustomStat> FIGHTER_SKILL_STATS = Arrays.asList(
-            new CustomStat("striking_power", "Striking Power", "Increases attack damage", 15,
-                    "+1 Attack Damage per level", MinecraftAttribute.ATTACK_DAMAGE, 1.0, false),
-            new CustomStat("combat_speed", "Combat Speed", "Increases attack speed", 12,
-                    "+6% Attack Speed per level", MinecraftAttribute.ATTACK_SPEED, 0.06, true),
-            new CustomStat("health_boost", "Health Boost", "Increases maximum health", 18,
-                    "+2 HP per level", MinecraftAttribute.MAX_HEALTH, 2.0, false),
-            new CustomStat("force", "Force", "Increases knockback on attacks", 10,
-                    "+0.6 Knockback per level", MinecraftAttribute.ATTACK_KNOCKBACK, 0.6, false),
-            new CustomStat("brutality", "Brutality", "Raw damage increase", 12,
-                    "+6% Attack Damage per level", MinecraftAttribute.ATTACK_DAMAGE, 0.06, true)
-    );
-
-    private static final List<CustomStat> FIGHTER_PASSIVE_STATS = Arrays.asList(
-            new CustomStat("iron_skin", "Iron Skin", "Increases armor rating", 18,
-                    "+1 Armor per level", MinecraftAttribute.ARMOR, 1.0, false),
-            new CustomStat("toughness", "Toughness", "Increases armor toughness", 12,
-                    "+0.6 Armor Toughness per level", MinecraftAttribute.ARMOR_TOUGHNESS, 0.6, false),
-            new CustomStat("mobility", "Mobility", "Increases movement speed", 12,
-                    "+1.5% Movement Speed per level", MinecraftAttribute.MOVEMENT_SPEED, 0.015, true),
-            new CustomStat("steadfast", "Steadfast", "Increases knockback resistance", 10,
-                    "+6% Knockback Resist per level", MinecraftAttribute.KNOCKBACK_RESISTANCE, 0.06, true),
-            new CustomStat("hardy", "Hardy", "Boosts health pool", 15,
-                    "+3 HP per level", MinecraftAttribute.MAX_HEALTH, 3.0, false)
-    );
-
-    private static final List<CustomStat> FIGHTER_ITEM_STATS = Arrays.asList(
-            new CustomStat("dexterity", "Dexterity", "Increases attack speed", 15,
-                    "+5% Attack Speed per level", MinecraftAttribute.ATTACK_SPEED, 0.05, true),
-            new CustomStat("speed", "Speed", "Increases movement speed", 12,
-                    "+2.5% Movement Speed per level", MinecraftAttribute.MOVEMENT_SPEED, 0.025, true),
-            new CustomStat("precision", "Precision", "Increases attack damage", 10,
-                    "+1.2 Attack Damage per level", MinecraftAttribute.ATTACK_DAMAGE, 1.2, false),
-            new CustomStat("momentum", "Momentum", "Increases knockback power", 12,
-                    "+0.4 Knockback per level", MinecraftAttribute.ATTACK_KNOCKBACK, 0.4, false),
-            new CustomStat("reflexes", "Reflexes", "Greatly increases attack speed", 8,
-                    "+10% Attack Speed per level", MinecraftAttribute.ATTACK_SPEED, 0.10, true)
-    );
-
-    // Registry
-    private static final Map<String, Map<String, List<CustomStat>>> CLASS_STATS = new HashMap<>();
+    // Custom stat definitions per line
+    private static final Map<String, List<CustomStat>> LINE_STATS = new HashMap<>();
 
     static {
-        Map<String, List<CustomStat>> warriorStats = new HashMap<>();
-        warriorStats.put("skill", WARRIOR_SKILL_STATS);
-        warriorStats.put("passive", WARRIOR_PASSIVE_STATS);
-        warriorStats.put("item", WARRIOR_ITEM_STATS);
-        CLASS_STATS.put("warrior", warriorStats);
-
-        Map<String, List<CustomStat>> fighterStats = new HashMap<>();
-        fighterStats.put("skill", FIGHTER_SKILL_STATS);
-        fighterStats.put("passive", FIGHTER_PASSIVE_STATS);
-        fighterStats.put("item", FIGHTER_ITEM_STATS);
-        CLASS_STATS.put("fighter", fighterStats);
+        initializeSkillLineStats();
+        initializePassiveLineStats();
+        initializeItemLineStats();
     }
 
-    // Public API
-    public static List<CustomStat> getStatsForLine(String className, String line) {
-        Map<String, List<CustomStat>> classStats = CLASS_STATS.get(className.toLowerCase());
-        if (classStats == null) return new ArrayList<>();
-        return classStats.getOrDefault(line, new ArrayList<>());
+    /**
+     * Initialize custom stats for SKILL line
+     * These focus on offensive combat stats
+     */
+    private static void initializeSkillLineStats() {
+        List<CustomStat> stats = new ArrayList<>();
+
+        // Attack Damage - +0.5 per level, max 5 levels
+        stats.add(new CustomStat(
+                "Attack Power",
+                "Increases your attack damage",
+                5,  // max level
+                Attributes.ATTACK_DAMAGE,
+                0.5,  // +0.5 ATK per level
+                AttributeModifier.Operation.ADDITION
+        ));
+
+        // Attack Speed - +2% per level, max 5 levels
+        stats.add(new CustomStat(
+                "Attack Speed",
+                "Increases your attack speed",
+                5,
+                Attributes.ATTACK_SPEED,
+                0.02,  // +2% per level
+                AttributeModifier.Operation.MULTIPLY_BASE
+        ));
+
+        // Knockback Resistance - +5% per level, max 5 levels
+        stats.add(new CustomStat(
+                "Knockback Resistance",
+                "Reduces knockback taken",
+                5,
+                Attributes.KNOCKBACK_RESISTANCE,
+                0.05,  // +5% per level
+                AttributeModifier.Operation.ADDITION
+        ));
+
+        LINE_STATS.put("skill", stats);
     }
 
-    public static CustomStat getStat(String className, String line, String statId) {
-        return getStatsForLine(className, line).stream()
-                .filter(stat -> stat.getId().equals(statId))
+    /**
+     * Initialize custom stats for PASSIVE line
+     * These focus on defensive/utility stats
+     */
+    private static void initializePassiveLineStats() {
+        List<CustomStat> stats = new ArrayList<>();
+
+        // Max Health - +2 HP per level, max 5 levels
+        stats.add(new CustomStat(
+                "Vitality",
+                "Increases your maximum health",
+                5,
+                Attributes.MAX_HEALTH,
+                2.0,  // +2 HP per level
+                AttributeModifier.Operation.ADDITION
+        ));
+
+        // Armor - +1 armor per level, max 5 levels
+        stats.add(new CustomStat(
+                "Defense",
+                "Increases your armor value",
+                5,
+                Attributes.ARMOR,
+                1.0,  // +1 armor per level
+                AttributeModifier.Operation.ADDITION
+        ));
+
+        // Armor Toughness - +0.5 per level, max 5 levels
+        stats.add(new CustomStat(
+                "Toughness",
+                "Increases your armor toughness",
+                5,
+                Attributes.ARMOR_TOUGHNESS,
+                0.5,  // +0.5 toughness per level
+                AttributeModifier.Operation.ADDITION
+        ));
+
+        LINE_STATS.put("passive", stats);
+    }
+
+    /**
+     * Initialize custom stats for ITEM line
+     * These focus on mobility and utility stats
+     */
+    private static void initializeItemLineStats() {
+        List<CustomStat> stats = new ArrayList<>();
+
+        // Movement Speed - +2% per level, max 5 levels
+        stats.add(new CustomStat(
+                "Movement Speed",
+                "Increases your movement speed",
+                5,
+                Attributes.MOVEMENT_SPEED,
+                0.02,  // +2% per level
+                AttributeModifier.Operation.MULTIPLY_BASE
+        ));
+
+        // Max Health (alternative) - +1.5 HP per level, max 5 levels
+        stats.add(new CustomStat(
+                "Endurance",
+                "Increases your maximum health",
+                5,
+                Attributes.MAX_HEALTH,
+                1.5,  // +1.5 HP per level
+                AttributeModifier.Operation.ADDITION
+        ));
+
+        // Luck - +0.5 per level, max 5 levels
+        stats.add(new CustomStat(
+                "Fortune",
+                "Increases your luck stat",
+                5,
+                Attributes.LUCK,
+                0.5,  // +0.5 luck per level
+                AttributeModifier.Operation.ADDITION
+        ));
+
+        LINE_STATS.put("item", stats);
+    }
+
+    // ==================== PUBLIC API ====================
+
+    /**
+     * Get all custom stats available for a specific line
+     */
+    public static List<CustomStat> getStatsForLine(String line) {
+        return LINE_STATS.getOrDefault(line, new ArrayList<>());
+    }
+
+    /**
+     * Get a specific custom stat by name and line
+     */
+    public static CustomStat getStat(String line, String statName) {
+        return getStatsForLine(line).stream()
+                .filter(stat -> stat.getName().equals(statName))
                 .findFirst()
                 .orElse(null);
     }
 
-    public static boolean isValidStat(String className, String line, String statId) {
-        return getStat(className, line, statId) != null;
+    /**
+     * Check if a stat name is valid for a line
+     */
+    public static boolean isValidStat(String line, String statName) {
+        return getStat(line, statName) != null;
+    }
+
+    /**
+     * Get all stat names for a line
+     */
+    public static List<String> getStatNames(String line) {
+        return getStatsForLine(line).stream()
+                .map(CustomStat::getName)
+                .toList();
+    }
+
+    // ==================== INNER CLASS ====================
+
+    /**
+     * Represents a single custom stat option
+     */
+    public static class CustomStat {
+        private final String name;
+        private final String description;
+        private final int maxLevel;
+        private final net.minecraft.world.entity.ai.attributes.Attribute attribute;
+        private final double valuePerLevel;
+        private final AttributeModifier.Operation operation;
+
+        public CustomStat(String name, String description, int maxLevel,
+                          net.minecraft.world.entity.ai.attributes.Attribute attribute,
+                          double valuePerLevel, AttributeModifier.Operation operation) {
+            this.name = name;
+            this.description = description;
+            this.maxLevel = maxLevel;
+            this.attribute = attribute;
+            this.valuePerLevel = valuePerLevel;
+            this.operation = operation;
+        }
+
+        public String getName() { return name; }
+        public String getDescription() { return description; }
+        public int getMaxLevel() { return maxLevel; }
+        public net.minecraft.world.entity.ai.attributes.Attribute getAttribute() { return attribute; }
+        public double getValuePerLevel() { return valuePerLevel; }
+        public AttributeModifier.Operation getOperation() { return operation; }
+
+        /**
+         * Get formatted display text for UI
+         */
+        public String getDisplayText(int currentLevel) {
+            String value = operation == AttributeModifier.Operation.MULTIPLY_BASE ?
+                    String.format("%.0f%%", valuePerLevel * 100) :
+                    String.format("%.1f", valuePerLevel);
+
+            return String.format("%s +%s", name, value);
+        }
+
+        /**
+         * Get tooltip text
+         */
+        public String getTooltip(int currentLevel) {
+            return String.format("%s\n§7%s\n§eCurrent: %d/%d",
+                    name, description, currentLevel, maxLevel);
+        }
     }
 }

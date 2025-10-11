@@ -8,7 +8,7 @@ import java.util.UUID;
 public class PhantomCooldownManager {
 
     private static final Map<UUID, Long> cooldowns = new HashMap<>();
-    private static final long COOLDOWN_DURATION_TICKS = 400; // 20 seconds (20 ticks per second)
+    private static final long COOLDOWN_DURATION_TICKS = 700; // 20 seconds (20 ticks per second)
 
     public static boolean isOnCooldown(Player player) {
         UUID playerId = player.getUUID();

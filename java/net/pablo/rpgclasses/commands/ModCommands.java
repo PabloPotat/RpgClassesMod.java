@@ -21,6 +21,7 @@ import net.pablo.rpgclasses.network.SyncProgressionPacket;
 import net.pablo.rpgclasses.progression.NodeRegistry;
 import net.pablo.rpgclasses.progression.ProgressionNode;
 import net.pablo.rpgclasses.registry.RPGClassRegistry;
+import net.pablo.rpgclasses.utils.DebugHelper;
 
 import java.util.List;
 
@@ -200,31 +201,63 @@ public class ModCommands {
         dispatcher.register(
                 Commands.literal("progression")
                         .requires(source -> source.hasPermission(2))
-                        .then(Commands.literal("info").executes(ctx -> showProgressionInfo(ctx.getSource().getPlayerOrException())))
-                        .then(Commands.literal("reset").executes(ctx -> resetProgression(ctx.getSource().getPlayerOrException())))
-                        .then(Commands.literal("resetcustom")
-                                .then(Commands.argument("line", StringArgumentType.word())
-                                        .executes(ctx -> resetCustomStats(ctx.getSource().getPlayerOrException(),
-                                                StringArgumentType.getString(ctx, "line")))))
-                        .then(Commands.literal("addpoints")
+                        .then(Commands.literal("info").executes(ctx -> {
+                            ServerPlayer player = ctx.getSource().getPlayerOrException();
+                            DebugHelper.debugCapability(player);
+                            return showProgressionInfo(player);
+                        }))
+                        .then(Commands.literal("reset").executes(ctx ->
+                                resetProgression(ctx.getSource().getPlayerOrException())))
+                        .then(Commands.literal("addlevels")
                                 .then(Commands.argument("amount", IntegerArgumentType.integer(1, 100))
-                                        .executes(ctx -> addSkillPoints(ctx.getSource().getPlayerOrException(),
+                                        .executes(ctx -> addLevels(ctx.getSource().getPlayerOrException(),
                                                 IntegerArgumentType.getInteger(ctx, "amount")))))
-                        .then(Commands.literal("listnodes").executes(ctx -> listNodes(ctx.getSource().getPlayerOrException())))
+                        .then(Commands.literal("listnodes").executes(ctx ->
+                                listNodes(ctx.getSource().getPlayerOrException())))
                         .then(Commands.literal("buynode")
                                 .then(Commands.argument("nodeId", StringArgumentType.string())
                                         .executes(ctx -> forceBuyNode(ctx.getSource().getPlayerOrException(),
                                                 StringArgumentType.getString(ctx, "nodeId")))))
-                        .then(Commands.literal("upgradecustom")
-                                .then(Commands.argument("line", StringArgumentType.word())
-                                        .then(Commands.argument("statName", StringArgumentType.string())
-                                                .executes(ctx -> upgradeCustomStat(ctx.getSource().getPlayerOrException(),
-                                                        StringArgumentType.getString(ctx, "line"),
-                                                        StringArgumentType.getString(ctx, "statName"))))))
+                        .then(Commands.literal("addpoints")
+                                .then(Commands.argument("amount", IntegerArgumentType.integer(1, 100))
+                                        .executes(ctx -> addSkillPoints(ctx.getSource().getPlayerOrException(),
+                                                IntegerArgumentType.getInteger(ctx, "amount")))))
+                        .then(Commands.literal("customstatinfo").executes(ctx ->
+                                showCustomStatInfo(ctx.getSource().getPlayerOrException())))
+        );
+
+
+        // ------------------ PROGRESSION LOGIC ------------------
+        dispatcher.register(
+                Commands.literal("progression")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.literal("info").executes(ctx -> {
+                            ServerPlayer player = ctx.getSource().getPlayerOrException();
+                            DebugHelper.debugCapability(player);
+                            return showProgressionInfo(player);
+                        }))
+                        .then(Commands.literal("reset").executes(ctx ->
+                                resetProgression(ctx.getSource().getPlayerOrException())))
+                        .then(Commands.literal("addlevels")
+                                .then(Commands.argument("amount", IntegerArgumentType.integer(1, 100))
+                                        .executes(ctx -> addLevels(ctx.getSource().getPlayerOrException(),
+                                                IntegerArgumentType.getInteger(ctx, "amount")))))
+                        .then(Commands.literal("listnodes").executes(ctx ->
+                                listNodes(ctx.getSource().getPlayerOrException())))
+                        .then(Commands.literal("buynode")
+                                .then(Commands.argument("nodeId", StringArgumentType.string())
+                                        .executes(ctx -> forceBuyNode(ctx.getSource().getPlayerOrException(),
+                                                StringArgumentType.getString(ctx, "nodeId")))))
+                        .then(Commands.literal("addpoints")
+                                .then(Commands.argument("amount", IntegerArgumentType.integer(1, 100))
+                                        .executes(ctx -> addSkillPoints(ctx.getSource().getPlayerOrException(),
+                                                IntegerArgumentType.getInteger(ctx, "amount")))))
+                        .then(Commands.literal("customstatinfo").executes(ctx ->
+                                showCustomStatInfo(ctx.getSource().getPlayerOrException())))
         );
     }
 
-    // ------------------ PROGRESSION LOGIC ------------------
+// ------------------ PROGRESSION LOGIC ------------------
 
     private static int showProgressionInfo(ServerPlayer player) {
         player.getCapability(PlayerClassProvider.PLAYER_CLASS_CAPABILITY).ifPresent(cap -> {
@@ -236,196 +269,206 @@ public class ModCommands {
             player.sendSystemMessage(Component.literal("§6=== Progression Info ==="));
             player.sendSystemMessage(Component.literal("§eClass: §f" + className));
             player.sendSystemMessage(Component.literal("§eClass Level: §f" + classLevel));
-            player.sendSystemMessage(Component.literal("§eSkill Points: §f" + progression.getSkillPoints(className)));
+            player.sendSystemMessage(Component.literal("§eSkill Points: §f" +
+                    progression.getSkillPoints(className)));
+            player.sendSystemMessage(Component.literal("§eSpent Levels: §f" +
+                    progression.getTotalSpentLevels()));
+            player.sendSystemMessage(Component.literal("§eAvailable Levels: §f" +
+                    progression.getAvailableLevels(classLevel)));
 
-            player.sendSystemMessage(Component.literal("\n§6Purchased Nodes:"));
-            player.sendSystemMessage(Component.literal("  §aSkill: §f" + progression.getNodeCount("skill")));
-            player.sendSystemMessage(Component.literal("  §dPassive: §f" + progression.getNodeCount("passive")));
-            player.sendSystemMessage(Component.literal("  §eItem: §f" + progression.getNodeCount("item")));
+            player.sendSystemMessage(Component.literal("§6Purchased Nodes:"));
+            player.sendSystemMessage(Component.literal("  §aSkill: §f" +
+                    progression.getNodeCount("skill")));
+            player.sendSystemMessage(Component.literal("  §dPassive: §f" +
+                    progression.getNodeCount("passive")));
+            player.sendSystemMessage(Component.literal("  §eItem: §f" +
+                    progression.getNodeCount("item")));
 
-            player.sendSystemMessage(Component.literal("\n§6Custom Stat Points:"));
-            player.sendSystemMessage(Component.literal("  §aSkill: §f" + progression.getAvailableCustomPoints("skill")));
-            player.sendSystemMessage(Component.literal("  §dPassive: §f" + progression.getAvailableCustomPoints("passive")));
-            player.sendSystemMessage(Component.literal("  §eItem: §f" + progression.getAvailableCustomPoints("item")));
-
-            player.sendSystemMessage(Component.literal("\n§6Final Unlocks:"));
+            player.sendSystemMessage(Component.literal("§6Unlocked:"));
             player.sendSystemMessage(Component.literal("  §aSkill: " +
                     (progression.isSkillUnlocked() ? "§a✓" : "§c✗")));
             player.sendSystemMessage(Component.literal("  §dPassive: " +
                     (progression.isPassiveUnlocked() ? "§a✓" : "§c✗")));
             player.sendSystemMessage(Component.literal("  §eItem: " +
                     (progression.isItemUnlocked() ? "§a✓" : "§c✗")));
-
-            spawnParticles(player, ParticleTypes.ENCHANT, 15);
         });
-        return 1;
+        return Command.SINGLE_SUCCESS;
     }
 
     private static int resetProgression(ServerPlayer player) {
         player.getCapability(PlayerClassProvider.PLAYER_CLASS_CAPABILITY).ifPresent(cap -> {
+            DebugHelper.showInfo(player, "Resetting progression...");
+
             PlayerProgressionData progression = cap.getProgressionData();
             PlayerProgressionData newProgression = new PlayerProgressionData();
             progression.copyFrom(newProgression);
 
             NetworkHandler.sendToClient(new SyncProgressionPacket(progression), player);
-            spawnParticles(player, ParticleTypes.EXPLOSION, 30);
-            player.sendSystemMessage(Component.literal("§a✓ Full progression reset!"));
+            DebugHelper.showSuccess(player, "Progression reset complete!");
         });
-        return 1;
+        return Command.SINGLE_SUCCESS;
     }
 
-    private static int resetCustomStats(ServerPlayer player, String line) {
-        if (!line.equals("skill") && !line.equals("passive") && !line.equals("item")) {
-            player.sendSystemMessage(Component.literal("§cInvalid line! Use: skill, passive, or item"));
-            return 0;
-        }
-
-        player.getCapability(PlayerClassProvider.PLAYER_CLASS_CAPABILITY).ifPresent(cap -> {
-            PlayerProgressionData progression = cap.getProgressionData();
-            var customStats = progression.getCustomStats(line);
-
-            // Clear all custom stats for this line
-            for (String statName : customStats.keySet()) {
-                int level = customStats.get(statName);
-                for (int i = 0; i < level; i++) {
-                    // You'd need to add a method to remove stat levels
-                    // For now, just clear the map
-                }
-            }
-
-            NetworkHandler.sendToClient(new SyncProgressionPacket(progression), player);
-            spawnParticles(player, ParticleTypes.POOF, 20);
-            player.sendSystemMessage(Component.literal("§a✓ Custom stats for " + line + " line reset!"));
-        });
-        return 1;
-    }
-
-    private static int addSkillPoints(ServerPlayer player, int amount) {
+    private static int addLevels(ServerPlayer player, int amount) {
         player.getCapability(PlayerClassProvider.PLAYER_CLASS_CAPABILITY).ifPresent(cap -> {
             if (cap.getSelectedClass() == null) {
-                player.sendSystemMessage(Component.literal("§cNo class selected!"));
+                DebugHelper.showError(player, "No class selected!");
                 return;
             }
 
             String className = cap.getSelectedClass().getClassName();
-            PlayerProgressionData progression = cap.getProgressionData();
+            int oldLevel = cap.getLevel(className);
+            cap.setLevel(className, oldLevel + amount);
 
-            int before = progression.getSkillPoints(className);
-            progression.addSkillPoints(className, amount);
-            int after = progression.getSkillPoints(className);
-
-            spawnParticles(player, ParticleTypes.HAPPY_VILLAGER, 30);
-            player.sendSystemMessage(Component.literal(
-                    "§a✓ Added " + amount + " skill points! §7(" + before + " → " + after + ")"));
-
-            NetworkHandler.sendToClient(new SyncProgressionPacket(progression), player);
+            DebugHelper.showSuccess(player, "Added " + amount + " levels! Now level " +
+                    (oldLevel + amount));
         });
-        return 1;
+        return Command.SINGLE_SUCCESS;
     }
 
     private static int listNodes(ServerPlayer player) {
         player.getCapability(PlayerClassProvider.PLAYER_CLASS_CAPABILITY).ifPresent(cap -> {
             if (cap.getSelectedClass() == null) {
-                player.sendSystemMessage(Component.literal("§cNo class selected!"));
+                DebugHelper.showError(player, "No class selected!");
                 return;
             }
 
             String className = cap.getSelectedClass().getClassName();
             PlayerProgressionData progression = cap.getProgressionData();
-            int availablePoints = progression.getSkillPoints(className);
 
+            DebugHelper.showInfo(player, "Listing nodes for " + className);
             player.sendSystemMessage(Component.literal("§6=== Available Nodes ==="));
-            player.sendSystemMessage(Component.literal("§7Skill Points: §e" + availablePoints));
-            player.sendSystemMessage(Component.literal("§7Legend: §a✓ Owned | §a○ Can Buy | §e⚠ Need Points | §c✗ Locked"));
 
             for (String line : new String[]{"skill", "passive", "item"}) {
-                player.sendSystemMessage(Component.literal("\n§e" + line.toUpperCase() + " LINE:"));
-
-                List<ProgressionNode> lineNodes = NodeRegistry.getNodesForLine(className, line);
-                for (int i = 0; i < lineNodes.size(); i++) {
-                    ProgressionNode node = lineNodes.get(i);
-                    String status = NodeRegistry.getPurchaseStatus(progression, node, availablePoints);
-
+                player.sendSystemMessage(Component.literal("§e" + line.toUpperCase() + " LINE:"));
+                for (ProgressionNode node : NodeRegistry.getNodesForLine(className, line)) {
+                    boolean purchased = progression.hasNode(line, node.getId());
+                    boolean canPurchase = NodeRegistry.canPurchaseNode(progression, node);
+                    String status = purchased ? "§a✓" : canPurchase ? "§e○" : "§c✗";
                     player.sendSystemMessage(Component.literal(
-                            "  " + (i + 1) + ". " + status + " §f" + node.getDisplayName() +
-                                    " §7(" + node.getCost() + " pts)"));
-
-                    // Show description for next available node
-                    if (status.contains("CAN PURCHASE")) {
-                        player.sendSystemMessage(Component.literal(
-                                "     §7→ " + node.getDescription()));
-                    }
+                            "  " + status + " §f" + node.getId() + " §7(" + node.getCost() +
+                                    " pts) §f- " + node.getDisplayName()));
                 }
             }
-
-            spawnParticles(player, ParticleTypes.ENCHANT, 10);
         });
-        return 1;
+        return Command.SINGLE_SUCCESS;
     }
 
     private static int forceBuyNode(ServerPlayer player, String nodeId) {
         player.getCapability(PlayerClassProvider.PLAYER_CLASS_CAPABILITY).ifPresent(cap -> {
             if (cap.getSelectedClass() == null) {
-                player.sendSystemMessage(Component.literal("§cNo class selected!"));
+                DebugHelper.showError(player, "No class selected!");
                 return;
             }
 
             String className = cap.getSelectedClass().getClassName();
+            DebugHelper.showInfo(player, "Attempting to buy node: " + nodeId);
+
             ProgressionNode node = NodeRegistry.getNode(className, nodeId);
 
             if (node == null) {
-                player.sendSystemMessage(Component.literal("§cNode not found: " + nodeId));
+                DebugHelper.showError(player, "Node not found: " + nodeId);
+                player.sendSystemMessage(Component.literal("§cAvailable nodes for " + className + ":"));
+                for (ProgressionNode n : NodeRegistry.getNodesForClass(className)) {
+                    player.sendSystemMessage(Component.literal("  §7- " + n.getId()));
+                }
                 return;
             }
 
             PlayerProgressionData progression = cap.getProgressionData();
+
             if (progression.hasNode(node.getLine(), nodeId)) {
-                player.sendSystemMessage(Component.literal("§cAlready purchased!"));
+                DebugHelper.showWarning(player, "Already purchased!");
                 return;
             }
 
-            progression.purchaseNode(node.getLine(), nodeId, 0);
-            spawnParticles(player, ParticleTypes.TOTEM_OF_UNDYING, 40);
-            player.sendSystemMessage(Component.literal("§a✓ Force purchased: " + node.getDisplayName()));
+            // Check prerequisites
+            if (!NodeRegistry.canPurchaseNode(progression, node)) {
+                DebugHelper.showWarning(player, "Prerequisites not met!");
+                if (node.hasPrerequisites()) {
+                    player.sendSystemMessage(Component.literal("§cRequired nodes:"));
+                    for (String prereq : node.getPrerequisites()) {
+                        boolean has = progression.hasNode(node.getLine(), prereq);
+                        player.sendSystemMessage(Component.literal("  " +
+                                (has ? "§a✓" : "§c✗") + " §f" + prereq));
+                    }
+                }
+                return;
+            }
+
+            // Get current skill points
+            int currentPoints = progression.getSkillPoints(className);
+            DebugHelper.showInfo(player, "Current points: " + currentPoints + ", Cost: " + node.getCost());
+
+            if (currentPoints < node.getCost()) {
+                DebugHelper.showError(player, "Not enough skill points! Have " + currentPoints +
+                        ", need " + node.getCost());
+                return;
+            }
+
+            // Purchase the node (THIS WAS THE BUG - using wrong method)
+            progression.purchaseNode(node.getLine(), nodeId, node.getCost(), className);
+
+            int newPoints = progression.getSkillPoints(className);
+            DebugHelper.showSuccess(player, "Purchased " + node.getDisplayName() +
+                    "! Points: " + currentPoints + " → " + newPoints);
 
             NetworkHandler.sendToClient(new SyncProgressionPacket(progression), player);
         });
-        return 1;
+        return Command.SINGLE_SUCCESS;
     }
 
-    private static int upgradeCustomStat(ServerPlayer player, String line, String statName) {
-        if (!line.equals("skill") && !line.equals("passive") && !line.equals("item")) {
-            player.sendSystemMessage(Component.literal("§cInvalid line! Use: skill, passive, or item"));
-            return 0;
-        }
-
+    private static int addSkillPoints(ServerPlayer player, int amount) {
         player.getCapability(PlayerClassProvider.PLAYER_CLASS_CAPABILITY).ifPresent(cap -> {
+            if (cap.getSelectedClass() == null) {
+                DebugHelper.showError(player, "No class selected!");
+                return;
+            }
+
+            String className = cap.getSelectedClass().getClassName();
             PlayerProgressionData progression = cap.getProgressionData();
 
-            int availablePoints = progression.getAvailableCustomPoints(line);
-            int currentLevel = progression.getCustomStatLevel(line, statName);
+            int oldPoints = progression.getSkillPoints(className);
+            progression.addSkillPoints(className, amount);
+            int newPoints = progression.getSkillPoints(className);
 
-            if (availablePoints <= 0) {
-                player.sendSystemMessage(Component.literal("§cNo custom stat points for " + line + " line!"));
-                return;
-            }
-
-            if (currentLevel >= 5) {
-                player.sendSystemMessage(Component.literal("§c" + statName + " is already at max level (5)!"));
-                return;
-            }
-
-            progression.spendCustomStat(line, statName);
-            int newLevel = currentLevel + 1;
-            int remaining = progression.getAvailableCustomPoints(line);
-
-            spawnParticles(player, ParticleTypes.ENCHANTED_HIT, 30);
-            player.sendSystemMessage(Component.literal(
-                    "§a✓ " + statName + " → Level " + newLevel + " §7(" + line + " points: " + remaining + ")"));
+            DebugHelper.showSuccess(player, "Added " + amount + " skill points! " +
+                    oldPoints + " → " + newPoints);
 
             NetworkHandler.sendToClient(new SyncProgressionPacket(progression), player);
         });
-        return 1;
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int showCustomStatInfo(ServerPlayer player) {
+        player.getCapability(PlayerClassProvider.PLAYER_CLASS_CAPABILITY).ifPresent(cap -> {
+            if (cap.getSelectedClass() == null) {
+                DebugHelper.showError(player, "No class selected!");
+                return;
+            }
+
+            PlayerProgressionData progression = cap.getProgressionData();
+
+            player.sendSystemMessage(Component.literal("§6=== Custom Stat Info ==="));
+            for (String line : new String[]{"skill", "passive", "item"}) {
+                int available = progression.getAvailableCustomPoints(line);
+                player.sendSystemMessage(Component.literal("§e" + line.toUpperCase() + " LINE:"));
+                player.sendSystemMessage(Component.literal("  §aAvailable Points: §f" + available));
+
+                var stats = progression.getCustomStats(line);
+                if (!stats.isEmpty()) {
+                    player.sendSystemMessage(Component.literal("  §dSpent Stats:"));
+                    stats.forEach((statName, level) ->
+                            player.sendSystemMessage(Component.literal("    §f" + statName + ": §a" + level))
+                    );
+                } else {
+                    player.sendSystemMessage(Component.literal("  §7No stats spent yet"));
+                }
+            }
+
+            DebugHelper.showInfo(player, "Custom stat info displayed");
+        });
+        return Command.SINGLE_SUCCESS;
     }
 
     // Utility method for particles

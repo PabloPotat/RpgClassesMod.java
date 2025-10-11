@@ -30,10 +30,10 @@ import java.util.*;
  * It is registered as an event listener for server ticks elsewhere (or via @SubscribeEvent here).
  */
 public class SeismicSmashManager {
-    public static final double SKILL_COOLDOWN_SECONDS = 10.0;
+    public static final double SKILL_COOLDOWN_SECONDS = 25.0;
     private static final double AOE_RADIUS = 5.0;
-    private static final double BASE_DAMAGE = 5.0;
-    private static final double ATTACK_SCALING = 0.1;
+    private static final double BASE_DAMAGE = 6.0;
+    private static final double ATTACK_SCALING = 0.15;
     private static final double BASE_STUN_SECONDS = 2.0;
     private static final double STUN_PER_COMBO = 0.5;
     private static final double MAX_STUN_SECONDS = 4.0;

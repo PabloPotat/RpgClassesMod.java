@@ -14,6 +14,8 @@ public final class StormCooldownManager {
     private static final Map<UUID, Long> expirations = new ConcurrentHashMap<>();
     private static final Map<UUID, Boolean> tookDamage = new ConcurrentHashMap<>();
 
+    private static final double COOLDOWN_SECONDS = 40.0; // 40 second cooldown
+
     private StormCooldownManager() {}
 
     public static boolean isOnCooldown(Player player) {
@@ -37,13 +39,18 @@ public final class StormCooldownManager {
     }
 
     public static void onStormSurgeEnd(Player player) {
-        // Only apply refund if player didn't take damage
-        if (!tookDamage.getOrDefault(player.getUUID(), false)) {
-            refundCooldownPercent(player, 0.5); // 50% refund
+        boolean damaged = tookDamage.getOrDefault(player.getUUID(), false);
+
+        if (damaged) {
+            // Full cooldown if damaged
+            setCooldown(player, COOLDOWN_SECONDS);
+        } else {
+            // 60% refund if no damage (40% of cooldown = 16s instead of 40s)
+            setCooldown(player, COOLDOWN_SECONDS * 0.4);
         }
-        // Only remove the damage tracking, NOT the cooldown itself
+
+        // Clean up damage tracking
         tookDamage.remove(player.getUUID());
-        // DON'T remove the expiration - that's the actual cooldown!
     }
 
     public static void refundCooldownPercent(Player player, double percent) {
@@ -57,9 +64,13 @@ public final class StormCooldownManager {
         expirations.put(player.getUUID(), now + reduced);
     }
 
-    // Optional: Add a method to clear cooldown if needed
     public static void clearCooldown(Player player) {
         expirations.remove(player.getUUID());
         tookDamage.remove(player.getUUID());
+    }
+
+    // Helper to check if damage was taken (for shockwave logic)
+    public static boolean tookDamage(Player player) {
+        return tookDamage.getOrDefault(player.getUUID(), false);
     }
 }

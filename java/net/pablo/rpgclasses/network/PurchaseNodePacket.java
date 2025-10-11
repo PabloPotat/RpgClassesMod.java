@@ -1,14 +1,13 @@
 package net.pablo.rpgclasses.network;
 
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
 import net.pablo.rpgclasses.capability.PlayerClassProvider;
 import net.pablo.rpgclasses.capability.PlayerProgressionData;
 import net.pablo.rpgclasses.progression.NodeRegistry;
 import net.pablo.rpgclasses.progression.ProgressionNode;
+import net.pablo.rpgclasses.utils.DebugHelper;
 
 import java.util.function.Supplier;
 
@@ -31,112 +30,112 @@ public class PurchaseNodePacket {
         NetworkEvent.Context ctx = supplier.get();
         ctx.enqueueWork(() -> {
             ServerPlayer player = ctx.getSender();
-            if (player == null) return;
+            if (player == null) {
+                System.err.println("[RPGClasses] PurchaseNodePacket: Player is null!");
+                return;
+            }
 
             player.getCapability(PlayerClassProvider.PLAYER_CLASS_CAPABILITY).ifPresent(cap -> {
                 String className = cap.getSelectedClass() != null ?
                         cap.getSelectedClass().getClassName() : null;
 
                 if (className == null) {
-                    debugFail(player, "No class selected!");
+                    DebugHelper.showError(player, "No class selected!");
                     return;
                 }
 
+                DebugHelper.showInfo(player, "Processing node purchase: " + nodeId);
+
+                // Get the node
                 ProgressionNode node = NodeRegistry.getNode(className, nodeId);
                 if (node == null) {
-                    debugFail(player, "Invalid node: " + nodeId);
+                    DebugHelper.showError(player, "Invalid node: " + nodeId);
                     return;
                 }
 
                 PlayerProgressionData progression = cap.getProgressionData();
 
+                // Debug current state
+                DebugHelper.showInfo(player, "Node: " + node.getDisplayName() +
+                        " | Line: " + node.getLine() + " | Cost: " + node.getCost());
+
                 // Check if already purchased
                 if (progression.hasNode(node.getLine(), nodeId)) {
-                    debugFail(player, "Already purchased: " + node.getDisplayName());
+                    DebugHelper.showWarning(player, "Already purchased!");
                     return;
                 }
 
                 // Check prerequisites
                 if (!NodeRegistry.canPurchaseNode(progression, node)) {
-                    debugFail(player, "Prerequisites not met for: " + node.getDisplayName());
+                    DebugHelper.showError(player, "Prerequisites not met!");
+
                     if (node.hasPrerequisites()) {
+                        player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§cRequired:"));
                         for (String prereq : node.getPrerequisites()) {
                             boolean has = progression.hasNode(node.getLine(), prereq);
                             player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                                    "§7  - " + prereq + ": " + (has ? "§a✓" : "§c✗")));
+                                    "  " + (has ? "§a✓" : "§c✗") + " §f" + prereq));
                         }
                     }
                     return;
                 }
 
-                // Check skill points
+                // Check skill points FOR THIS CLASS
                 int availablePoints = progression.getSkillPoints(className);
-                int nodeCost = node.getCost();
+                DebugHelper.showInfo(player, "Points check: Have " + availablePoints +
+                        ", Need " + node.getCost());
 
-                debugMessage(player, "§e[PURCHASE] Attempting: %s", node.getDisplayName());
-                debugMessage(player, "§e[COST] Need: %d | Have: %d", nodeCost, availablePoints);
-
-                if (availablePoints < nodeCost) {
-                    debugFail(player, "Not enough points! Need " + nodeCost + ", have " + availablePoints);
+                if (availablePoints < node.getCost()) {
+                    DebugHelper.showError(player, "Not enough " + className +
+                            " skill points! Need " + node.getCost() + ", have " + availablePoints);
                     return;
                 }
 
-                // CRITICAL: Deduct points BEFORE purchasing node
-                int pointsBefore = availablePoints;
-                progression.addSkillPoints(className, -nodeCost); // Deduct the cost
-                int pointsAfterDeduction = progression.getSkillPoints(className);
+                // Purchase the node (THIS DEDUCTS POINTS)
+                int pointsBefore = progression.getSkillPoints(className);
+                progression.purchaseNode(node.getLine(), nodeId, node.getCost(), className);
+                int pointsAfter = progression.getSkillPoints(className);
 
-                debugMessage(player, "§e[DEDUCT] %d - %d = %d points",
-                        pointsBefore, nodeCost, pointsAfterDeduction);
-
-                // Now purchase the node (this just marks it as owned)
-                progression.purchaseNode(node.getLine(), node.getId(), 0, className);
-
-                debugMessage(player, "§a[SUCCESS] Node purchased! Points remaining: %d",
-                        pointsAfterDeduction);
+                DebugHelper.showSuccess(player, "Node purchased! Points: " +
+                        pointsBefore + " → " + pointsAfter);
 
                 // Apply reward
-                applyNodeReward(player, node, progression, className);
+                applyNodeReward(player, node, progression);
 
-                // Success particles
-                spawnParticles(player, ParticleTypes.ENCHANT, 30);
+                // Check if this unlocked a custom stat point
+                if (node.getRewardType().equals("CUSTOM_POINT")) {
+                    int availableCustomPoints = progression.getAvailableCustomPoints(node.getLine());
+                    player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                            "§6✦ +1 Custom Stat Point for " + node.getLine() +
+                                    " line! §7(Available: " + availableCustomPoints + ")"));
+                }
 
-                // Get final points after everything
-                int finalPoints = progression.getSkillPoints(className);
-
-                // Success message
+                // Notify player
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                        "§a✓ Unlocked: §f" + node.getDisplayName() +
-                                " §7(" + node.getLine() + " | -" + nodeCost + " pts | " + finalPoints + " remaining)"
-                ));
+                        "§a✓ Unlocked: " + node.getDisplayName()));
 
                 // Sync to client
                 NetworkHandler.sendToClient(new SyncProgressionPacket(progression), player);
             });
         });
+        ctx.setPacketHandled(true);
         return true;
     }
 
     private void applyNodeReward(ServerPlayer player, ProgressionNode node,
-                                 PlayerProgressionData progression, String className) {
-        String rewardType = node.getRewardType();
+                                 PlayerProgressionData progression) {
+        DebugHelper.showInfo(player, "Applying reward: " + node.getRewardType() +
+                " | " + node.getRewardValue());
 
-        debugMessage(player, "§d[REWARD] Type: %s | Value: %s", rewardType, node.getRewardValue());
-
-        switch (rewardType) {
+        switch (node.getRewardType()) {
             case "STAT":
                 applyStatBonus(player, node.getRewardValue());
                 break;
 
             case "CUSTOM_POINT":
-                int availableCustom = progression.getAvailableCustomPoints(node.getLine());
-                debugMessage(player, "§6[CUSTOM] +1 point for %s line (Total: %d)",
-                        node.getLine(), availableCustom);
-
-                spawnParticles(player, ParticleTypes.TOTEM_OF_UNDYING, 20);
+                // Custom points are automatically tracked in purchaseNode()
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                        "§6✦ +1 Custom Stat Point for " + node.getLine() +
-                                " line! §7(Available: " + availableCustom + ")"));
+                        "§e⭐ Custom Stat Point earned! Open Custom Stats menu to spend."));
                 break;
 
             case "UNLOCK":
@@ -144,12 +143,12 @@ public class PurchaseNodePacket {
                 break;
 
             default:
-                debugMessage(player, "§c[WARN] Unknown reward type: %s", rewardType);
+                DebugHelper.showWarning(player, "Unknown reward type: " + node.getRewardType());
         }
     }
 
     private void applyStatBonus(ServerPlayer player, String bonus) {
-        debugMessage(player, "§b[STAT] Applying: %s", bonus);
+        DebugHelper.showInfo(player, "Applying stat bonus: " + bonus);
 
         try {
             if (bonus.contains("HP")) {
@@ -159,8 +158,7 @@ public class PurchaseNodePacket {
                     attr.addPermanentModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(
                             java.util.UUID.randomUUID(), "progression_hp", amount,
                             net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADDITION));
-                    player.setHealth(player.getHealth() + amount); // Heal for the bonus
-                    debugMessage(player, "§a[STAT] +%d HP applied", amount);
+                    DebugHelper.showSuccess(player, "Applied +" + amount + " HP");
                 }
             } else if (bonus.contains("ATK") && !bonus.contains("%")) {
                 int amount = Integer.parseInt(bonus.replaceAll("[^0-9]", ""));
@@ -169,7 +167,7 @@ public class PurchaseNodePacket {
                     attr.addPermanentModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(
                             java.util.UUID.randomUUID(), "progression_atk", amount,
                             net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADDITION));
-                    debugMessage(player, "§a[STAT] +%d ATK applied", amount);
+                    DebugHelper.showSuccess(player, "Applied +" + amount + " ATK");
                 }
             } else if (bonus.contains("% DMG") || bonus.contains("%DMG")) {
                 double percent = Double.parseDouble(bonus.replaceAll("[^0-9.]", "")) / 100.0;
@@ -178,68 +176,44 @@ public class PurchaseNodePacket {
                     attr.addPermanentModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(
                             java.util.UUID.randomUUID(), "progression_dmg_pct", percent,
                             net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.MULTIPLY_BASE));
-                    debugMessage(player, "§a[STAT] +%.1f%% DMG applied", percent * 100);
+                    DebugHelper.showSuccess(player, "Applied +" + (percent * 100) + "% DMG");
                 }
             } else if (bonus.contains("Lifesteal") || bonus.contains("lifesteal")) {
-                debugMessage(player, "§e[STAT] Lifesteal tracking not yet implemented");
+                // Store lifesteal in progression data or apply via event handler
+                DebugHelper.showWarning(player, "Lifesteal bonus (not yet implemented)");
             }
         } catch (Exception e) {
-            debugMessage(player, "§c[ERROR] Failed to parse stat: %s", bonus);
+            DebugHelper.showError(player, "Failed to parse bonus: " + bonus);
+            System.err.println("[RPGClasses] Failed to parse stat bonus: " + bonus);
+            e.printStackTrace();
         }
     }
 
-    private void unlockFinalReward(ServerPlayer player, ProgressionNode node, PlayerProgressionData progression) {
+    private void unlockFinalReward(ServerPlayer player, ProgressionNode node,
+                                   PlayerProgressionData progression) {
         String line = node.getLine();
-        debugMessage(player, "§5[UNLOCK] Final reward for %s line!", line);
+
+        DebugHelper.showSuccess(player, "Unlocking final reward for " + line + " line!");
 
         switch (line) {
             case "skill":
                 progression.setSkillUnlocked(true);
-                spawnParticles(player, ParticleTypes.DRAGON_BREATH, 50);
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                         "§6§l✦ SKILL UNLOCKED: " + node.getDisplayName() + " ✦"));
                 break;
 
             case "passive":
                 progression.setPassiveUnlocked(true);
-                spawnParticles(player, ParticleTypes.ENCHANTED_HIT, 50);
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                         "§d§l✦ PASSIVE UNLOCKED: " + node.getDisplayName() + " ✦"));
                 break;
 
             case "item":
                 progression.setItemUnlocked(true);
-                spawnParticles(player, ParticleTypes.END_ROD, 50);
                 player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                         "§e§l✦ ITEM UNLOCKED: " + node.getDisplayName() + " ✦"));
+                // TODO: Give the actual item to the player
                 break;
-        }
-    }
-
-    // Debug utilities
-    private void debugMessage(ServerPlayer player, String message, Object... args) {
-        if (args.length > 0) {
-            message = String.format(message, args);
-        }
-        player.sendSystemMessage(net.minecraft.network.chat.Component.literal(message));
-    }
-
-    private void debugFail(ServerPlayer player, String message) {
-        player.sendSystemMessage(net.minecraft.network.chat.Component.literal("§c[FAIL] " + message));
-        spawnParticles(player, ParticleTypes.SMOKE, 10);
-    }
-
-    private void spawnParticles(ServerPlayer player, net.minecraft.core.particles.ParticleOptions particle, int count) {
-        if (player.level() instanceof ServerLevel serverLevel) {
-            serverLevel.sendParticles(
-                    particle,
-                    player.getX(),
-                    player.getY() + 1.0,
-                    player.getZ(),
-                    count,
-                    0.3, 0.5, 0.3,
-                    0.1
-            );
         }
     }
 }

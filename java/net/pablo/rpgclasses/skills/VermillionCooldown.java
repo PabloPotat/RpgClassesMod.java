@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public class VermillionCooldown {
     private static final HashMap<UUID, Long> cooldowns = new HashMap<>();
-    private static final int DEFAULT_COOLDOWN_TICKS = 20 * 15; // 15 seconds
+    private static final int DEFAULT_COOLDOWN_TICKS = 20 * 50; // 50 seconds (updated from 15)
 
     public static boolean isOnCooldown(Player player) {
         UUID id = player.getUUID();
@@ -32,5 +32,9 @@ public class VermillionCooldown {
         long expireTime = cooldowns.get(id);
         long remainingMs = expireTime - System.currentTimeMillis();
         return (int) Math.max(0, remainingMs / 50);
+    }
+
+    public static void clearCooldown(Player player) {
+        cooldowns.remove(player.getUUID());
     }
 }

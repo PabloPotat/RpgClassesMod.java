@@ -53,7 +53,7 @@ public class ClassSkillClientHandler {
                 break;
 
 
-                case "mage": {
+                case "mage":{
                     NetworkHandler.INSTANCE.sendToServer(new ClassSkillPressedPacket());
                 }
                 break;

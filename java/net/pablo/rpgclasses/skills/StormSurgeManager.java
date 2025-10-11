@@ -25,8 +25,8 @@ public class StormSurgeManager {
 
     // Constants
     public static final int DURATION_TICKS = 100; // 5 seconds
-    public static final double COOLDOWN_SECONDS = 30.0;
-    private static final double ARMOR_BUFF = 5.0;
+    public static final double COOLDOWN_SECONDS = 40.0;
+    private static final double ARMOR_BUFF = 10.0;
     private static final double MOVEMENT_SLOW_MULTIPLIER = -0.5;
 
     // Shockwave params
@@ -102,9 +102,6 @@ public class StormSurgeManager {
 
         // Store active state
         activeStormSurgePlayers.put(playerId, new StormSurgeData(playerId, player.level().getGameTime()));
-
-        StormCooldownManager.setCooldown(player, COOLDOWN_SECONDS);
-
     }
 
     /** Apply buffs */
@@ -167,17 +164,16 @@ public class StormSurgeManager {
         // Remove buffs
         removeStormSurgeEffects(player);
 
-        StormCooldownManager.onStormSurgeEnd(player); // This will apply refund if no damage
+        // Handle cooldown with refund logic (sets cooldown internally)
+        StormCooldownManager.onStormSurgeEnd(player);
 
-        // Shockwave at end
-        if (player.level() instanceof ServerLevel serverLevel) {
+        // Shockwave at end (only if damage was taken)
+        if (StormCooldownManager.tookDamage(player) && player.level() instanceof ServerLevel serverLevel) {
             spawnShockwave(serverLevel, player);
         }
 
         // Clean up damage tracking
         damageReceived.remove(playerId);
-
-
     }
 
     /** Shockwave implementation */

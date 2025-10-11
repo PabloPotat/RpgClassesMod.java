@@ -26,9 +26,9 @@ public class ArcaneBrandManager {
     private static final Map<UUID, Map<UUID, Long>> playerHaloTargets = new HashMap<>();
     private static final Map<UUID, BeamTask> activeBeams = new HashMap<>();
 
-    private static final long MARK_DURATION_MILLIS = 10_000; // 10s
-    private static final float SPELL_DAMAGE_MULTIPLIER = 1.20f;
-    private static final float MAX_BONUS_DAMAGE = 5f;
+    private static final long MARK_DURATION_MILLIS = 12_000; // 10s
+    private static final float SPELL_DAMAGE_MULTIPLIER = 1.30f;
+    private static final float MAX_BONUS_DAMAGE = 6f;
 
     private static final int BEAM_TICKS = 10;
     private static final double BEAM_STEP = 0.5;
@@ -39,6 +39,7 @@ public class ArcaneBrandManager {
 
     /** Cast Arcane Brand around the caster */
     public static void cast(Player caster) {
+        if (ArcaneBrandCooldownManager.isOnCooldown(caster)) return;
         if (!(caster.level() instanceof ServerLevel level)) return;
 
         var targets = level.getEntitiesOfClass(LivingEntity.class,
@@ -55,6 +56,7 @@ public class ArcaneBrandManager {
         for (LivingEntity target : targets) {
             activeBeams.put(UUID.randomUUID(), new BeamTask(level, caster, target, casterId));
         }
+        ArcaneBrandCooldownManager.setCooldown(caster);
     }
 
     /** Track mana spending by tick */
@@ -245,7 +247,7 @@ public class ArcaneBrandManager {
 
         MagicData pmg = MagicData.getPlayerMagicData(caster);
         if (pmg != null) {
-            float manaRestore = 15f;
+            float manaRestore = 20f;
             pmg.addMana(manaRestore);
             if (caster instanceof ServerPlayer serverPlayer) {
                 Messages.sendToPlayer(new ClientboundSyncMana(pmg), serverPlayer);

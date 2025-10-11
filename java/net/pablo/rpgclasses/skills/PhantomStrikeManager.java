@@ -16,20 +16,19 @@ import java.util.*;
 @Mod.EventBusSubscriber
 public class PhantomStrikeManager {
 
-    private static final int PHANTOM_DURATION_TICKS = 120;
-    private static final int HIT_EXTENSION_TICKS = 20;
-    private static final int WAVE_DURATION_TICKS = 10;
-    private static final double BASE_DAMAGE = 6.0;
+    private static final int PHANTOM_DURATION_TICKS = 140;
+    private static final int HIT_EXTENSION_TICKS = 30;
+    private static final int WAVE_DURATION_TICKS = 14;
+    private static final double BASE_DAMAGE = 7.0;
     private static final int MAX_WAVES = 3;
 
     private static final Map<UUID, List<SlashWave>> activeWaves = new HashMap<>();
-    private static final Map<UUID, Long> cooldowns = new HashMap<>();
     private static final Map<UUID, Integer> slashCount = new HashMap<>();
 
     public static void activate(ServerPlayer player, long tick) {
-        if (isOnCooldown(player)) return;
+        if (PhantomCooldownManager.isOnCooldown(player)) return;
 
-        cooldowns.put(player.getUUID(), tick + 400);
+        PhantomCooldownManager.setCooldown(player);
         slashCount.put(player.getUUID(), 0);
 
         player.addEffect(new MobEffectInstance(
@@ -39,17 +38,6 @@ public class PhantomStrikeManager {
                 false,
                 true
         ));
-    }
-
-    public static boolean isOnCooldown(ServerPlayer player) {
-        Long cd = cooldowns.get(player.getUUID());
-        if (cd == null) return false;
-        long now = player.level().getGameTime();
-        if (now >= cd) {
-            cooldowns.remove(player.getUUID());
-            return false;
-        }
-        return true;
     }
 
     @SubscribeEvent
@@ -153,8 +141,8 @@ public class PhantomStrikeManager {
             if (age > WAVE_DURATION_TICKS) return false;
 
             double progress = age / (double) WAVE_DURATION_TICKS;
-            double forwardDistance = progress * 4.0;
-            double radius = 1.5 + progress * 2.5;
+            double forwardDistance = progress * 5.0;
+            double radius = 1.8 + progress * 3.0;
             Vec3 origin = startPos.add(direction.scale(forwardDistance));
 
             spawnSlashParticles(level, origin, direction, radius, progress, age);
